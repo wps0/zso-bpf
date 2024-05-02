@@ -35,6 +35,7 @@
 #include <linux/rcupdate_trace.h>
 #include <linux/memcontrol.h>
 #include <linux/trace_events.h>
+#include <linux/bpf_redactor.h>
 
 #include <net/netfilter/nf_bpf_link.h>
 #include <net/netkit.h>
@@ -2664,6 +2665,8 @@ static int bpf_prog_load(union bpf_attr *attr, bpfptr_t uattr, u32 uattr_size)
 		btf_get(attach_btf);
 	}
 
+	printk("tu1?");
+
 	bpf_prog_load_fixup_attach_type(attr);
 	if (bpf_prog_load_check_attach(type, attr->expected_attach_type,
 				       attach_btf, attr->attach_btf_id,
@@ -2672,6 +2675,7 @@ static int bpf_prog_load(union bpf_attr *attr, bpfptr_t uattr, u32 uattr_size)
 			bpf_prog_put(dst_prog);
 		if (attach_btf)
 			btf_put(attach_btf);
+		printk("einval tu");
 		return -EINVAL;
 	}
 
@@ -3775,6 +3779,8 @@ attach_type_to_prog_type(enum bpf_attach_type attach_type)
 	case BPF_NETKIT_PRIMARY:
 	case BPF_NETKIT_PEER:
 		return BPF_PROG_TYPE_SCHED_CLS;
+	case BPF_REDACTOR:
+		return BPF_PROG_TYPE_REDACTOR;
 	default:
 		return BPF_PROG_TYPE_UNSPEC;
 	}
@@ -3916,6 +3922,9 @@ static int bpf_prog_attach(const union bpf_attr *attr)
 		else
 			ret = netkit_prog_attach(attr, prog);
 		break;
+	case BPF_PROG_TYPE_REDACTOR:
+		ret = redactor_bpf_prog_attach(attr, prog);
+		break;
 	default:
 		ret = -EINVAL;
 	}
@@ -3980,6 +3989,9 @@ static int bpf_prog_detach(const union bpf_attr *attr)
 			ret = tcx_prog_detach(attr, prog);
 		else
 			ret = netkit_prog_detach(attr, prog);
+		break;
+	case BPF_PROG_TYPE_REDACTOR:
+		ret = redactor_bpf_prog_detach(attr, prog);
 		break;
 	default:
 		ret = -EINVAL;
@@ -5400,6 +5412,8 @@ static int __sys_bpf(int cmd, bpfptr_t uattr, unsigned int size)
 	err = security_bpf(cmd, &attr, size);
 	if (err < 0)
 		return err;
+
+	printk("pusc to na podworkach cmd=%d\n", cmd);
 
 	switch (cmd) {
 	case BPF_MAP_CREATE:

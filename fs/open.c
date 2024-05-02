@@ -34,6 +34,7 @@
 #include <linux/compat.h>
 #include <linux/mnt_idmapping.h>
 #include <linux/filelock.h>
+#include <linux/bpf_redactor.h>
 
 #include "internal.h"
 
