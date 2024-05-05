@@ -2,6 +2,14 @@
 #include <linux/bpf_redactor.h>
 #include <linux/printk.h>
 
+const struct bpf_prog_ops bpf_redactor_prog_ops = {
+};
+
+const struct bpf_verifier_ops bpf_redactor_verifier_ops = {
+//	.get_func_proto = bpf_tracing_func_proto,
+//	.is_valid_access = btf_ctx_access, // ewentualnie to do zmiany
+};
+
 int bpf_redactor_decide(struct redactor_ctx *ctx)
 {
     printk("decide");

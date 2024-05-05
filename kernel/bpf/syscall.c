@@ -2448,6 +2448,7 @@ bpf_prog_load_check_attach(enum bpf_prog_type prog_type,
 		case BPF_PROG_TYPE_LSM:
 		case BPF_PROG_TYPE_STRUCT_OPS:
 		case BPF_PROG_TYPE_EXT:
+		case BPF_PROG_TYPE_REDACTOR: // TODO: upewnic sie czy to nic nie psuje
 			break;
 		default:
 			return -EINVAL;
@@ -2665,7 +2666,6 @@ static int bpf_prog_load(union bpf_attr *attr, bpfptr_t uattr, u32 uattr_size)
 		btf_get(attach_btf);
 	}
 
-	printk("tu1?");
 
 	bpf_prog_load_fixup_attach_type(attr);
 	if (bpf_prog_load_check_attach(type, attr->expected_attach_type,
@@ -3655,6 +3655,10 @@ static int bpf_raw_tp_link_attach(struct bpf_prog *prog,
 		buf[sizeof(buf) - 1] = 0;
 		tp_name = buf;
 		break;
+	case BPF_PROG_TYPE_REDACTOR:
+		tp_name = "bpf_redactor_decide";
+		// TODO: powiedzieć, do którego trace pointu się podłączyć
+		break;
 	default:
 		return -EINVAL;
 	}
@@ -3834,6 +3838,10 @@ static int bpf_prog_attach_check_attach_type(const struct bpf_prog *prog,
 		    attach_type != BPF_TCX_EGRESS &&
 		    attach_type != BPF_NETKIT_PRIMARY &&
 		    attach_type != BPF_NETKIT_PEER)
+			return -EINVAL;
+		return 0;
+	case BPF_PROG_TYPE_REDACTOR:
+		if (attach_type != BPF_REDACTOR)
 			return -EINVAL;
 		return 0;
 	default:
