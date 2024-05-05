@@ -38,6 +38,10 @@
 
 #include "internal.h"
 
+#define CREATE_TRACE_POINTS
+#include <trace/events/bpf_redactor.h>
+
+
 int do_truncate(struct mnt_idmap *idmap, struct dentry *dentry,
 		loff_t length, unsigned int time_attrs, struct file *filp)
 {
@@ -1443,6 +1447,11 @@ static long do_sys_openat2(int dfd, const char __user *filename,
 			fd_install(fd, f);
 		}
 	}
+
+	if (trace_bpf_redactor_decide_enabled()) {
+		printk("TRACE BPF REDACTOR DECIDE ENABLED!");
+	}
+
 	putname(tmp);
 	return fd;
 }
