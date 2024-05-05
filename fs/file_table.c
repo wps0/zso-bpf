@@ -175,6 +175,8 @@ static int init_file(struct file *f, int flags, const struct cred *cred)
 	f->f_flags = flags;
 	f->f_mode = OPEN_FMODE(flags);
 	/* f->f_version: 0 */
+	f->f_rcnt = 0;
+	f->f_ron = false;
 
 	/*
 	 * We're SLAB_TYPESAFE_BY_RCU so initialize f_count last. While

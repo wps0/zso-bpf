@@ -1013,6 +1013,9 @@ struct file {
 	struct inode		*f_inode;	/* cached value */
 	const struct file_operations	*f_op;
 
+	int f_rcnt; /* redactions count */
+	bool f_ron;
+
 	u64			f_version;
 #ifdef CONFIG_SECURITY
 	void			*f_security;
