@@ -1,14 +1,34 @@
+#include <asm-generic/errno.h>
 #include <linux/types.h>
 #include <linux/bpf_redactor.h>
 #include <linux/printk.h>
+#include <linux/syscalls.h>
+#include <linux/file.h>
 
-const struct bpf_prog_ops bpf_redactor_prog_ops = {
-};
+SYSCALL_DEFINE1(count_redactions, int, fd)
+{
+    struct fd f = fdget_pos(fd);
+    int retval;
+    if (!f.file)
+        return -EBADF;
 
-const struct bpf_verifier_ops bpf_redactor_verifier_ops = {
-//	.get_func_proto = bpf_tracing_func_proto,
-//	.is_valid_access = btf_ctx_access, // ewentualnie to do zmiany
-};
+    retval = f.file->f_rcnt;
+    
+    fdput_pos(f);
+    return retval;
+}
+
+SYSCALL_DEFINE1(reset_redactions, int, fd)
+{
+    struct fd f = fdget_pos(fd);
+    if (!f.file)
+        return -EBADF;
+
+    f.file->f_rcnt = 0;
+    
+    fdput_pos(f);
+    return 0;
+}
 
 int bpf_redactor_decide(struct redactor_ctx *ctx)
 {

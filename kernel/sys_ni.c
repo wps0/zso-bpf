@@ -388,3 +388,7 @@ COND_SYSCALL(setuid16);
 
 /* restartable sequence */
 COND_SYSCALL(rseq);
+
+/* redactor */
+COND_SYSCALL(count_redactions);
+COND_SYSCALL(reset_redactions);
