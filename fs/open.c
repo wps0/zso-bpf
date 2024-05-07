@@ -1445,12 +1445,29 @@ static long do_sys_openat2(int dfd, const char __user *filename,
 			fd = PTR_ERR(f);
 		} else {
 			fd_install(fd, f);
+
+			//if (trace_bpf_redactor_decide_enabled()) {
+				//printk("TRACE BPF REDACTOR DECIDE ENABLED!");
+
+				struct redactor_ctx ctx = {
+					.flags = 0,
+					.mode = 0,
+					.uid = {0},
+					.gid = {0},
+				};
+				trace_bpf_redactor_decide(&ctx);
+				struct tracepoint *tp;
+				//int ret = bpf_redactor_decide(&ctx);
+				//int ret = 0;
+				//printk("Decide returned %d\n", ret);
+				//int ret2 = bpf_redactor_redact(&ctx);
+				//printk("Redact returned %d\n", ret2);
+
+				//f->f_ron = ret > 0;
+			//}
 		}
 	}
 
-	if (trace_bpf_redactor_decide_enabled()) {
-		printk("TRACE BPF REDACTOR DECIDE ENABLED!");
-	}
 
 	putname(tmp);
 	return fd;

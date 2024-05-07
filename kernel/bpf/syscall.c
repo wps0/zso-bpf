@@ -3655,6 +3655,8 @@ static int bpf_raw_tp_link_attach(struct bpf_prog *prog,
 		buf[sizeof(buf) - 1] = 0;
 		tp_name = buf;
 		break;
+//	case BPF_PROG_TYPE_REDACTOR:
+//		return bpf_tracing_prog_attach(prog, 0, 0, 0);
 	case BPF_PROG_TYPE_REDACTOR:
 		tp_name = "bpf_redactor_decide";
 		// TODO: powiedzieć, do którego trace pointu się podłączyć

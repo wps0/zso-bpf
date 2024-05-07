@@ -22,6 +22,9 @@ union {
 int bpf_redactor_decide(struct redactor_ctx *ctx);
 int bpf_redactor_redact(struct redactor_ctx *ctx);
 
+bool redactor_is_decide_type(const struct bpf_prog *prog);
+bool redactor_is_redact_type(const struct bpf_prog *prog);
+
 int redactor_bpf_prog_attach(const union bpf_attr *attr, struct bpf_prog *prog);
 int redactor_bpf_prog_detach(const union bpf_attr *attr, struct bpf_prog *prog);
 
