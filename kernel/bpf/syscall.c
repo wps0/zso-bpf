@@ -3159,6 +3159,12 @@ static int bpf_tracing_prog_attach(struct bpf_prog *prog,
 			goto out_put_prog;
 		}
 		break;
+	case BPF_PROG_TYPE_REDACTOR:
+		if (prog->expected_attach_type != BPF_REDACTOR) {
+			err = -EINVAL;
+			goto out_put_prog;
+		}
+		break;
 	default:
 		err = -EINVAL;
 		goto out_put_prog;
@@ -3228,7 +3234,8 @@ static int bpf_tracing_prog_attach(struct bpf_prog *prog,
 		 * re-attach in separate code path.
 		 */
 		if (prog->type != BPF_PROG_TYPE_TRACING &&
-		    prog->type != BPF_PROG_TYPE_LSM) {
+		    prog->type != BPF_PROG_TYPE_LSM &&
+			prog->type != BPF_PROG_TYPE_REDACTOR) {
 			err = -EINVAL;
 			goto out_unlock;
 		}
@@ -3636,6 +3643,7 @@ static int bpf_raw_tp_link_attach(struct bpf_prog *prog,
 	switch (prog->type) {
 	case BPF_PROG_TYPE_TRACING:
 	case BPF_PROG_TYPE_EXT:
+	case BPF_PROG_TYPE_REDACTOR:
 	case BPF_PROG_TYPE_LSM:
 		if (user_tp_name)
 			/* The attach point for this category of programs
@@ -3657,10 +3665,10 @@ static int bpf_raw_tp_link_attach(struct bpf_prog *prog,
 		break;
 //	case BPF_PROG_TYPE_REDACTOR:
 //		return bpf_tracing_prog_attach(prog, 0, 0, 0);
-	case BPF_PROG_TYPE_REDACTOR:
+/*	case BPF_PROG_TYPE_REDACTOR:
 		tp_name = "bpf_redactor_decide";
 		// TODO: powiedzieć, do którego trace pointu się podłączyć
-		break;
+		break;*/
 	default:
 		return -EINVAL;
 	}

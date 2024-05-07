@@ -1455,12 +1455,12 @@ static long do_sys_openat2(int dfd, const char __user *filename,
 					.uid = {0},
 					.gid = {0},
 				};
-				trace_bpf_redactor_decide(&ctx);
-				struct tracepoint *tp;
-				//int ret = bpf_redactor_decide(&ctx);
+				//trace_bpf_redactor_decide(&ctx);
+				//struct tracepoint *tp;
+				bpf_redactor_decide(&ctx);
 				//int ret = 0;
 				//printk("Decide returned %d\n", ret);
-				//int ret2 = bpf_redactor_redact(&ctx);
+				bpf_redactor_redact(&ctx);
 				//printk("Redact returned %d\n", ret2);
 
 				//f->f_ron = ret > 0;

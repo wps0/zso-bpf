@@ -36,13 +36,11 @@ SYSCALL_DEFINE1(reset_redactions, int, fd)
 
 int bpf_redactor_decide(struct redactor_ctx *ctx)
 {
-    printk("decide");
     return -EOPNOTSUPP;
 }
 
 int bpf_redactor_redact(struct redactor_ctx *ctx)
 {
-    printk("redact");
     return -EOPNOTSUPP;
 }
 
