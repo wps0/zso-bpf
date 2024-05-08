@@ -64,6 +64,9 @@ void redactor_decide(const struct open_how *how)
 	spin_unlock(&f->f_rlock);
 }
 
+void redactor_redact()
+{
+}
 
 
 static const struct bpf_func_proto *
