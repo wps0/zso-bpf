@@ -177,6 +177,7 @@ static int init_file(struct file *f, int flags, const struct cred *cred)
 	/* f->f_version: 0 */
 	f->f_rcnt = 0;
 	f->f_ron = false;
+	f->f_rlock = SPIN_LOCK_UNLOCKED;
 
 	/*
 	 * We're SLAB_TYPESAFE_BY_RCU so initialize f_count last. While

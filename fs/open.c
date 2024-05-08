@@ -1446,25 +1446,7 @@ static long do_sys_openat2(int dfd, const char __user *filename,
 		} else {
 			fd_install(fd, f);
 
-			//if (trace_bpf_redactor_decide_enabled()) {
-				//printk("TRACE BPF REDACTOR DECIDE ENABLED!");
-
-				struct redactor_ctx ctx = {
-					.flags = 0,
-					.mode = 0,
-					.uid = {0},
-					.gid = {0},
-				};
-				//trace_bpf_redactor_decide(&ctx);
-				//struct tracepoint *tp;
-				bpf_redactor_decide(&ctx);
-				//int ret = 0;
-				//printk("Decide returned %d\n", ret);
-				bpf_redactor_redact(&ctx);
-				//printk("Redact returned %d\n", ret2);
-
-				//f->f_ron = ret > 0;
-			//}
+			redactor_decide(how);
 		}
 	}
 

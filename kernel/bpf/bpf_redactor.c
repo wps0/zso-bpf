@@ -36,26 +36,34 @@ SYSCALL_DEFINE1(reset_redactions, int, fd)
 
 int bpf_redactor_decide(struct redactor_ctx *ctx)
 {
-    return -EOPNOTSUPP;
+    return 0;
 }
 
 int bpf_redactor_redact(struct redactor_ctx *ctx)
 {
-    return -EOPNOTSUPP;
-}
-
-
-int redactor_bpf_prog_attach(const union bpf_attr *attr, struct bpf_prog *prog)
-{
-    printk("attach");
     return 0;
 }
 
-int redactor_bpf_prog_detach(const union bpf_attr *attr, struct bpf_prog *prog)
+struct redactor_ctx create_ctx(const struct open_how *how)
 {
-    printk("detach");
-    return 0;
+    return (struct redactor_ctx) {
+        .flags = how->flags,
+		.mode = how->mode,
+		.uid = current_uid(),
+		.gid = current_gid(),
+	};
 }
+
+void redactor_decide(const struct open_how *how)
+{
+    struct redactor_ctx ctx = create_ctx(how);
+	bool ron = bpf_redactor_decide(&ctx) > 0;
+
+	spin_lock(&f->f_rlock);
+	f->f_ron = ron;
+	spin_unlock(&f->f_rlock);
+}
+
 
 
 static const struct bpf_func_proto *

@@ -1015,6 +1015,7 @@ struct file {
 
 	int f_rcnt; /* redactions count */
 	bool f_ron;
+	spinlock_t f_rlock;
 
 	u64			f_version;
 #ifdef CONFIG_SECURITY
