@@ -1419,6 +1419,19 @@ struct file *file_open_root(const struct path *root,
 }
 EXPORT_SYMBOL(file_open_root);
 
+static void redactor_decide(struct file *f, const struct open_how *how)
+{
+    struct redactor_ctx ctx = create_decide_ctx(how);
+    int decide = bpf_redactor_decide(&ctx);
+	bool ron = decide > 0;
+	if (ron)
+    	printk("%d", decide);
+
+	spin_lock(&f->f_rlock);
+	f->f_ron = ron;
+	spin_unlock(&f->f_rlock);
+}
+
 static long do_sys_openat2(int dfd, const char __user *filename,
 			   struct open_how *how)
 {
@@ -1442,7 +1455,7 @@ static long do_sys_openat2(int dfd, const char __user *filename,
 		} else {
 			fd_install(fd, f);
 
-			redactor_decide(how);
+			redactor_decide(f, how);
 		}
 	}
 

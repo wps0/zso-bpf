@@ -27,6 +27,23 @@
 
 #include <linux/bpf_redactor.h>
 
+void redactor_redact(struct file *f)
+{
+	spin_lock(&f->f_rlock);
+	if (!f->f_ron)
+		goto exit;
+	spin_unlock(&f->f_rlock);
+
+    struct redactor_ctx ctx = create_redact_ctx();
+	int reds = bpf_redactor_redact(&ctx);
+
+	spin_lock(&f->f_rlock);
+	f->f_rcnt += reds;
+
+exit:
+	spin_unlock(&f->f_rlock);
+}
+
 const struct file_operations generic_ro_fops = {
 	.llseek		= generic_file_llseek,
 	.read_iter	= generic_file_read_iter,
@@ -473,6 +490,7 @@ ssize_t vfs_read(struct file *file, char __user *buf, size_t count, loff_t *pos)
 	else
 		ret = -EINVAL;
 	if (ret > 0) {
+		redactor_redact(file);
 		fsnotify_access(file);
 		add_rchar(current, ret);
 	}
@@ -917,6 +935,9 @@ static ssize_t vfs_readv(struct file *file, const struct iovec __user *vec,
 		ret = do_iter_read(file, &iter, pos, flags);
 		kfree(iov);
 	}
+
+	// TODO: nie kopiowanie do userspace? (najpierw napisac bez tego)
+	redactor_redact(file);
 
 	return ret;
 }
@@ -1720,3 +1741,4 @@ int generic_file_rw_checks(struct file *file_in, struct file *file_out)
 
 	return 0;
 }
+

@@ -22,8 +22,7 @@ union {
 int bpf_redactor_decide(struct redactor_ctx *ctx);
 int bpf_redactor_redact(struct redactor_ctx *ctx);
 
-struct redactor_ctx create_ctx(const struct open_how *how);
-void redactor_decide(const struct open_how *how);
-void redactor_redact();
+struct redactor_ctx create_decide_ctx(const struct open_how *how);
+struct redactor_ctx create_redact_ctx(void);
 
 #endif // __BPF_REDACTOR_H

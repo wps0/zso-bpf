@@ -29,6 +29,7 @@
 #include <linux/ima.h>
 #include <linux/swap.h>
 #include <linux/kmemleak.h>
+#include <linux/spinlock.h>
 
 #include <linux/atomic.h>
 
@@ -177,7 +178,7 @@ static int init_file(struct file *f, int flags, const struct cred *cred)
 	/* f->f_version: 0 */
 	f->f_rcnt = 0;
 	f->f_ron = false;
-	f->f_rlock = SPIN_LOCK_UNLOCKED;
+	spin_lock_init(&f->f_rlock);
 
 	/*
 	 * We're SLAB_TYPESAFE_BY_RCU so initialize f_count last. While

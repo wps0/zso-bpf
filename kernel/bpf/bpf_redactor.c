@@ -11,11 +11,17 @@ SYSCALL_DEFINE1(count_redactions, int, fd)
     int retval;
     if (!f.file)
         return -EBADF;
-    if (!f.file->f_ron)
-        return -EINVAL;
+
+    spin_lock(&f.file->f_rlock);
+    if (!f.file->f_ron) {
+        retval = -EINVAL;
+        goto cleanup;
+    }
 
     retval = f.file->f_rcnt;
-    
+
+cleanup:
+ 	spin_unlock(&f.file->f_rlock);
     fdput_pos(f);
     return retval;
 }
@@ -23,15 +29,23 @@ SYSCALL_DEFINE1(count_redactions, int, fd)
 SYSCALL_DEFINE1(reset_redactions, int, fd)
 {
     struct fd f = fdget_pos(fd);
+    int retval;
     if (!f.file)
         return -EBADF;
-    if (!f.file->f_ron)
-        return -EINVAL;
 
-    f.file->f_rcnt = 0;
+    spin_lock(&f.file->f_rlock);
+    if (!f.file->f_ron) {
+        retval = -EINVAL;
+        goto cleanup;
+    }
     
+    f.file->f_rcnt = 0;
+    retval = 0;
+
+cleanup:
+ 	spin_unlock(&f.file->f_rlock);
     fdput_pos(f);
-    return 0;
+    return retval;
 }
 
 int bpf_redactor_decide(struct redactor_ctx *ctx)
@@ -44,7 +58,7 @@ int bpf_redactor_redact(struct redactor_ctx *ctx)
     return 0;
 }
 
-struct redactor_ctx create_ctx(const struct open_how *how)
+struct redactor_ctx create_decide_ctx(const struct open_how *how)
 {
     return (struct redactor_ctx) {
         .flags = how->flags,
@@ -54,18 +68,12 @@ struct redactor_ctx create_ctx(const struct open_how *how)
 	};
 }
 
-void redactor_decide(const struct open_how *how)
+struct redactor_ctx create_redact_ctx(void)
 {
-    struct redactor_ctx ctx = create_ctx(how);
-	bool ron = bpf_redactor_decide(&ctx) > 0;
-
-	spin_lock(&f->f_rlock);
-	f->f_ron = ron;
-	spin_unlock(&f->f_rlock);
-}
-
-void redactor_redact()
-{
+    return (struct redactor_ctx) {
+        .offset = 0,
+        .size = 0,
+    };
 }
 
 

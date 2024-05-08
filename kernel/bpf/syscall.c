@@ -3940,9 +3940,6 @@ static int bpf_prog_attach(const union bpf_attr *attr)
 		else
 			ret = netkit_prog_attach(attr, prog);
 		break;
-	case BPF_PROG_TYPE_REDACTOR:
-		ret = redactor_bpf_prog_attach(attr, prog);
-		break;
 	default:
 		ret = -EINVAL;
 	}
@@ -4007,9 +4004,6 @@ static int bpf_prog_detach(const union bpf_attr *attr)
 			ret = tcx_prog_detach(attr, prog);
 		else
 			ret = netkit_prog_detach(attr, prog);
-		break;
-	case BPF_PROG_TYPE_REDACTOR:
-		ret = redactor_bpf_prog_detach(attr, prog);
 		break;
 	default:
 		ret = -EINVAL;
