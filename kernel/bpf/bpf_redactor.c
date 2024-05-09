@@ -1,9 +1,11 @@
+#include <asm-generic/errno-base.h>
 #include <asm-generic/errno.h>
 #include <linux/types.h>
 #include <linux/bpf_redactor.h>
 #include <linux/printk.h>
 #include <linux/syscalls.h>
 #include <linux/file.h>
+#include <linux/filter.h>
 
 SYSCALL_DEFINE1(count_redactions, int, fd)
 {
@@ -68,15 +70,7 @@ struct redactor_ctx create_decide_ctx(const struct open_how *how)
 	};
 }
 
-struct redactor_ctx create_redact_ctx(void)
-{
-    return (struct redactor_ctx) {
-        .offset = 0,
-        .size = 0,
-    };
-}
-
-
+// Wołane z verifier.c: static int check_helper_call
 static const struct bpf_func_proto *
 redactor_func_proto(enum bpf_func_id func_id, const struct bpf_prog *prog)
 {
@@ -86,6 +80,7 @@ redactor_func_proto(enum bpf_func_id func_id, const struct bpf_prog *prog)
 	}
 }
 
+// Używana w verifier.c: static int check_ctx_access
 static bool redactor_is_valid_access(int off, int size,
 					   enum bpf_access_type type,
 					   const struct bpf_prog *prog,
@@ -93,6 +88,61 @@ static bool redactor_is_valid_access(int off, int size,
 {
     return false;
 }
+
+static bool __redactor_allowed_prog(const struct bpf_prog *prog)
+{
+    return prog->type == BPF_PROG_TYPE_REDACTOR;
+}
+
+struct redactor_info rd_info;
+
+BPF_CALL_4(bpf_copy_to_buffer, struct redactor_ctx *, ctx, unsigned long, offset, void *, ptr, unsigned long, size)
+{
+    if (offset > rd_info.size)
+        return -EINVAL;
+    // Avoid overflows
+    if (size > rd_info.size - offset)
+        return -EINVAL;
+    size_t sz = rd_info.size - offset;
+    if (size < sz)
+        sz = size;
+    return copy_to_user(rd_info.buf + offset, ptr, sz);
+}
+
+const struct bpf_func_proto bpf_copy_to_buffer_proto = {
+    .func = bpf_copy_to_buffer,
+    .gpl_only = false,
+    .ret_type = RET_INTEGER,
+	.arg1_type = ARG_PTR_TO_CTX | MEM_RDONLY,
+	.arg2_type = ARG_ANYTHING,
+	.arg3_type = ARG_PTR_TO_MEM,
+	.arg4_type = ARG_CONST_SIZE,
+    .allowed = __redactor_allowed_prog,
+};
+
+BPF_CALL_4(bpf_copy_from_buffer, struct redactor_ctx *, ctx, unsigned long, offset, void *, ptr, unsigned long, size)
+{
+    if (offset > rd_info.size)
+        return -EINVAL;
+    size_t sz = rd_info.size - offset;
+    if (sz > size)
+        sz = size;
+
+    return copy_from_user(ptr, rd_info.buf + offset, sz);
+}
+
+const struct bpf_func_proto bpf_copy_from_buffer_proto = {
+    .func = bpf_copy_from_buffer,
+    .gpl_only = false,
+    .ret_type = RET_INTEGER,
+	.arg1_type = ARG_PTR_TO_CTX | MEM_RDONLY,
+	.arg2_type = ARG_ANYTHING,
+	.arg3_type = ARG_PTR_TO_MEM,
+	.arg4_type = ARG_CONST_SIZE,
+    .allowed = __redactor_allowed_prog,
+};
+
+
 
 const struct bpf_prog_ops bpf_redactor_prog_ops = {
 };
@@ -102,11 +152,6 @@ const struct bpf_verifier_ops bpf_redactor_verifier_ops = {
 	.is_valid_access = redactor_is_valid_access, // ewentualnie to do zmiany
 };
 
-
 /*
 // https://docs.kernel.org/bpf/kfuncs.html
-// https://elixir.bootlin.com/linux/v5.13-rc1/source/kernel/bpf/helpers.c#L20
-__bpf_kfunc int bpf_copy_to_buffer(void *ctx, unsigned long offset, void *ptr, unsigned long size);
-
-__bpf_kfunc int bpf_copy_from_buffer(void *ctx, unsigned long offset, void *ptr, unsigned long size);
 */

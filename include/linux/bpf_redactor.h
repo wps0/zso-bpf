@@ -3,6 +3,7 @@
 #include <linux/types.h>
 #include <linux/uidgid.h>
 #include <linux/bpf.h>
+#include <linux/spinlock.h>
 
 struct redactor_ctx {
 union {
@@ -19,10 +20,16 @@ union {
 };
 };
 
+struct redactor_info {
+        char __user *buf;
+        size_t size;
+};
+
+extern struct redactor_info rd_info;
+
 int bpf_redactor_decide(struct redactor_ctx *ctx);
 int bpf_redactor_redact(struct redactor_ctx *ctx);
 
 struct redactor_ctx create_decide_ctx(const struct open_how *how);
-struct redactor_ctx create_redact_ctx(void);
 
 #endif // __BPF_REDACTOR_H

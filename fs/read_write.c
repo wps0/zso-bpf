@@ -5,6 +5,7 @@
  *  Copyright (C) 1991, 1992  Linus Torvalds
  */
 
+#include <asm-generic/errno.h>
 #include <linux/slab.h>
 #include <linux/stat.h>
 #include <linux/sched/xacct.h>
@@ -27,21 +28,50 @@
 
 #include <linux/bpf_redactor.h>
 
-void redactor_redact(struct file *f)
+// Invariant: f_pos_lock must be held
+int redactor_redact(struct file* f, char __user *buf, size_t size)
 {
+	int retval;
+	bool ron;
+
 	spin_lock(&f->f_rlock);
-	if (!f->f_ron)
-		goto exit;
+	ron = f->f_ron;
 	spin_unlock(&f->f_rlock);
+	if (!ron) {
+		retval = 0;
+		goto exit;
+	}
 
-    struct redactor_ctx ctx = create_redact_ctx();
-	int reds = bpf_redactor_redact(&ctx);
+	// create redactor ctx
+    struct redactor_ctx ctx;
+    ctx.offset = f->f_pos;
+    // TODO: lock f_path?
+	struct kstat *stat = kmalloc(sizeof(struct kstat), GFP_KERNEL);
+	if (IS_ERR_OR_NULL(stat))
+		return -ENOMEM;
+	retval = vfs_getattr(&f->f_path, stat, STATX_SIZE, AT_STATX_SYNC_AS_STAT);
+	if (retval < 0)
+		goto exit;
+	ctx.size = stat->size;
+	kfree(stat);
+
+	rd_info = (struct redactor_info) {
+		.buf = buf,
+		.size = size,
+	};
+
+	retval = bpf_redactor_redact(&ctx);
+	if (retval < 0) {
+		retval = -EINVAL;
+		goto exit;
+	}
 
 	spin_lock(&f->f_rlock);
-	f->f_rcnt += reds;
+	f->f_rcnt += retval;
+	spin_unlock(&f->f_rlock);
 
 exit:
-	spin_unlock(&f->f_rlock);
+	return retval;
 }
 
 const struct file_operations generic_ro_fops = {
@@ -469,6 +499,7 @@ EXPORT_SYMBOL(kernel_read);
 ssize_t vfs_read(struct file *file, char __user *buf, size_t count, loff_t *pos)
 {
 	ssize_t ret;
+	int err = 0;
 
 	if (!(file->f_mode & FMODE_READ))
 		return -EBADF;
@@ -490,11 +521,14 @@ ssize_t vfs_read(struct file *file, char __user *buf, size_t count, loff_t *pos)
 	else
 		ret = -EINVAL;
 	if (ret > 0) {
-		redactor_redact(file);
+		err = redactor_redact(file, buf, count);
 		fsnotify_access(file);
 		add_rchar(current, ret);
 	}
 	inc_syscr(current);
+
+	if (err < 0)
+		return err;
 	return ret;
 }
 
@@ -929,15 +963,19 @@ static ssize_t vfs_readv(struct file *file, const struct iovec __user *vec,
 	struct iovec *iov = iovstack;
 	struct iov_iter iter;
 	ssize_t ret;
+//	int err;
 
 	ret = import_iovec(ITER_DEST, vec, vlen, ARRAY_SIZE(iovstack), &iov, &iter);
 	if (ret >= 0) {
 		ret = do_iter_read(file, &iter, pos, flags);
 		kfree(iov);
+
+		// TODO: nie kopiowanie do userspace? (najpierw napisac bez tego)
+//		err = redactor_redact();
 	}
 
-	// TODO: nie kopiowanie do userspace? (najpierw napisac bez tego)
-	redactor_redact(file);
+	//if (err < 0)
+		//return err;
 
 	return ret;
 }

@@ -1784,6 +1784,10 @@ bpf_base_func_proto(enum bpf_func_id func_id)
 	case BPF_FUNC_get_current_ancestor_cgroup_id:
 		return &bpf_get_current_ancestor_cgroup_id_proto;
 #endif
+	case BPF_FUNC_copy_to_buffer:
+		return &bpf_copy_to_buffer_proto;
+	case BPF_FUNC_copy_from_buffer:
+		return &bpf_copy_from_buffer_proto;
 	default:
 		break;
 	}
