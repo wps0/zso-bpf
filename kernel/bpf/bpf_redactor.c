@@ -1,5 +1,6 @@
 #include <asm-generic/errno-base.h>
 #include <asm-generic/errno.h>
+#include <linux/bpf.h>
 #include <linux/types.h>
 #include <linux/bpf_redactor.h>
 #include <linux/printk.h>
@@ -75,6 +76,8 @@ static const struct bpf_func_proto *
 redactor_func_proto(enum bpf_func_id func_id, const struct bpf_prog *prog)
 {
 	switch (func_id) {
+    case BPF_FUNC_get_current_uid_gid:
+        return &bpf_get_current_uid_gid_proto;
 	default:
 		return bpf_base_func_proto(func_id);
 	}
