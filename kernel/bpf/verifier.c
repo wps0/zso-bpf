@@ -5689,7 +5689,7 @@ static int check_ctx_access(struct bpf_verifier_env *env, int insn_idx, int off,
 	};
 
 	if (env->ops->is_valid_access &&
-	    env->ops->is_valid_access(off, size, t, env->prog, &info)) { // TODO: tu?
+	    env->ops->is_valid_access(off, size, t, env->prog, &info)) {
 		/* A non zero info.ctx_field_size indicates that this field is a
 		 * candidate for later verifier transformation to load the whole
 		 * field and then apply a mask when accessed with a narrower
@@ -10266,7 +10266,6 @@ static int check_helper_call(struct bpf_verifier_env *env, struct bpf_insn *insn
 	}
 
 	switch (func_id) {
-	// TODO: tutaj check czy program ktory wola nowe helper funkcje ma typ redactor
 	case BPF_FUNC_tail_call:
 		err = check_reference_leak(env, false);
 		if (err) {
@@ -15412,7 +15411,6 @@ static int check_return_code(struct bpf_verifier_env *env, int regno)
 	case BPF_PROG_TYPE_NETFILTER:
 		range = tnum_range(NF_DROP, NF_ACCEPT);
 		break;
-	// TODO: tu case?
 	case BPF_PROG_TYPE_EXT:
 		/* freplace program can return anything as its return value
 		 * depends on the to-be-replaced kernel func or bpf program.
@@ -17939,7 +17937,6 @@ static bool is_tracing_prog_type(enum bpf_prog_type type)
 	case BPF_PROG_TYPE_PERF_EVENT:
 	case BPF_PROG_TYPE_RAW_TRACEPOINT:
 	case BPF_PROG_TYPE_RAW_TRACEPOINT_WRITABLE:
-	// TODO??
 		return true;
 	default:
 		return false;

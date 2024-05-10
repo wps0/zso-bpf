@@ -89,6 +89,26 @@ static bool redactor_is_valid_access(int off, int size,
 					   const struct bpf_prog *prog,
 					   struct bpf_insn_access_aux *info)
 {
+    if (off < 0 || off >= sizeof(struct redactor_ctx))
+		return false;
+	if (type != BPF_READ)
+		return false;
+
+    // if is redact
+    switch (off) {
+    case bpf_ctx_range(struct redactor_ctx, offset):
+    case bpf_ctx_range(struct redactor_ctx, size):
+        return true;
+    }
+
+    switch (off) {
+    case bpf_ctx_range(struct redactor_ctx, flags):
+    case bpf_ctx_range(struct redactor_ctx, mode):
+    case bpf_ctx_range(struct redactor_ctx, uid):
+    case bpf_ctx_range(struct redactor_ctx, gid):
+        return true;
+    }
+ 
     return false;
 }
 
@@ -152,9 +172,5 @@ const struct bpf_prog_ops bpf_redactor_prog_ops = {
 
 const struct bpf_verifier_ops bpf_redactor_verifier_ops = {
 	.get_func_proto = redactor_func_proto,
-	.is_valid_access = redactor_is_valid_access, // ewentualnie to do zmiany
+	.is_valid_access = redactor_is_valid_access,
 };
-
-/*
-// https://docs.kernel.org/bpf/kfuncs.html
-*/
