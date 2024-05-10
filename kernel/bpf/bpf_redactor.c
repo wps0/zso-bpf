@@ -3,7 +3,6 @@
 #include <linux/bpf.h>
 #include <linux/types.h>
 #include <linux/bpf_redactor.h>
-#include <linux/printk.h>
 #include <linux/syscalls.h>
 #include <linux/file.h>
 #include <linux/filter.h>
@@ -111,6 +110,7 @@ static bool redactor_is_valid_access(int off, int size,
  
     return false;
 }
+
 
 static bool __redactor_allowed_prog(const struct bpf_prog *prog)
 {

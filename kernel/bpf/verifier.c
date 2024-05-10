@@ -15411,6 +15411,7 @@ static int check_return_code(struct bpf_verifier_env *env, int regno)
 	case BPF_PROG_TYPE_NETFILTER:
 		range = tnum_range(NF_DROP, NF_ACCEPT);
 		break;
+	// TODO: tu case?
 	case BPF_PROG_TYPE_EXT:
 		/* freplace program can return anything as its return value
 		 * depends on the to-be-replaced kernel func or bpf program.
@@ -17937,6 +17938,7 @@ static bool is_tracing_prog_type(enum bpf_prog_type type)
 	case BPF_PROG_TYPE_PERF_EVENT:
 	case BPF_PROG_TYPE_RAW_TRACEPOINT:
 	case BPF_PROG_TYPE_RAW_TRACEPOINT_WRITABLE:
+	// TODO??
 		return true;
 	default:
 		return false;
@@ -20724,9 +20726,7 @@ static int check_attach_btf_id(struct bpf_verifier_env *env)
 		ret = bpf_lsm_verify_prog(&env->log, prog);
 		if (ret < 0)
 			return ret;
-	} else if (prog->type == BPF_PROG_TYPE_REDACTOR) {
-		return 0; // TODO implement verification
-    } else if (prog->type == BPF_PROG_TYPE_TRACING &&
+	} else if (prog->type == BPF_PROG_TYPE_TRACING &&
 		   btf_id_set_contains(&btf_id_deny, btf_id)) {
 		return -EINVAL;
 	}
