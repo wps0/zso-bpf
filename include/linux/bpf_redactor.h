@@ -25,11 +25,14 @@ struct redactor_info {
         size_t size;
 };
 
-extern struct redactor_info rd_info;
+struct redactor_ctx_kern {
+        struct redactor_info info;
+        struct redactor_ctx ctx;
+};
 
-int bpf_redactor_decide(struct redactor_ctx *ctx);
-int bpf_redactor_redact(struct redactor_ctx *ctx);
+int bpf_redactor_decide(struct redactor_ctx_kern *ctx);
+int bpf_redactor_redact(struct redactor_ctx_kern *ctx);
 
-struct redactor_ctx create_decide_ctx(const struct open_how *how);
+struct redactor_ctx_kern create_decide_ctx(const struct open_how *how);
 
 #endif // __BPF_REDACTOR_H

@@ -50,24 +50,30 @@ cleanup:
     return retval;
 }
 
-int bpf_redactor_decide(struct redactor_ctx *ctx)
+int bpf_redactor_decide(struct redactor_ctx_kern *ctx)
 {
     return 0;
 }
 
-int bpf_redactor_redact(struct redactor_ctx *ctx)
+int bpf_redactor_redact(struct redactor_ctx_kern *ctx)
 {
     return 0;
 }
 
-struct redactor_ctx create_decide_ctx(const struct open_how *how)
+struct redactor_ctx_kern create_decide_ctx(const struct open_how *how)
 {
-    return (struct redactor_ctx) {
-        .flags = how->flags,
-		.mode = how->mode,
-		.uid = current_uid(),
-		.gid = current_gid(),
-	};
+    return (struct redactor_ctx_kern) {
+        .info = {
+            .buf = NULL,
+            .size = 0,
+        },
+        .ctx = {
+            .flags = how->flags,
+		    .mode = how->mode,
+		    .uid = current_uid(),
+		    .gid = current_gid(),
+	    },
+    };
 }
 
 // Wołane z verifier.c: static int check_helper_call
@@ -111,25 +117,54 @@ static bool redactor_is_valid_access(int off, int size,
     return false;
 }
 
+static u32 redactor_convert_ctx_access(enum bpf_access_type type,
+					const struct bpf_insn *si,
+					struct bpf_insn *insn_buf,
+					struct bpf_prog *prog,
+					u32 *target_size)
+{
+	struct bpf_insn *insn = insn_buf;
+
+	switch (si->off) {
+	case offsetof(struct redactor_ctx, offset):
+		*insn++ = BPF_LDX_MEM(BPF_SIZEOF(void *), si->dst_reg, si->src_reg,
+				      offsetof(struct redactor_ctx_kern, ctx.offset));
+		break;
+ 	case offsetof(struct redactor_ctx, size):
+		*insn++ = BPF_LDX_MEM(BPF_SIZEOF(void *), si->dst_reg, si->src_reg,
+				      offsetof(struct redactor_ctx_kern, ctx.size));
+		break;
+  	case offsetof(struct redactor_ctx, uid):
+		*insn++ = BPF_LDX_MEM(BPF_SIZEOF(void *), si->dst_reg, si->src_reg,
+				      offsetof(struct redactor_ctx_kern, ctx.uid));
+		break;
+ 	case offsetof(struct redactor_ctx, gid):
+		*insn++ = BPF_LDX_MEM(BPF_SIZEOF(void *), si->dst_reg, si->src_reg,
+				      offsetof(struct redactor_ctx_kern, ctx.gid));
+		break;
+    }
+
+    return insn - insn_buf;
+}
+
 
 static bool __redactor_allowed_prog(const struct bpf_prog *prog)
 {
     return prog->type == BPF_PROG_TYPE_REDACTOR;
 }
 
-struct redactor_info rd_info;
 
-BPF_CALL_4(bpf_copy_to_buffer, struct redactor_ctx *, ctx, unsigned long, offset, void *, ptr, unsigned long, size)
+BPF_CALL_4(bpf_copy_to_buffer, struct redactor_ctx_kern *, ctx, unsigned long, offset, void *, ptr, unsigned long, size)
 {
-    if (offset > rd_info.size)
+    if (offset > ctx->info.size)
         return -EINVAL;
     // Avoid overflows
-    if (size > rd_info.size - offset)
+    if (size > ctx->info.size - offset)
         return -EINVAL;
-    size_t sz = rd_info.size - offset;
+    size_t sz = ctx->info.size - offset;
     if (size < sz)
         sz = size;
-    return copy_to_user(rd_info.buf + offset, ptr, sz);
+    return copy_to_user(ctx->info.buf + offset, ptr, sz);
 }
 
 const struct bpf_func_proto bpf_copy_to_buffer_proto = {
@@ -143,15 +178,15 @@ const struct bpf_func_proto bpf_copy_to_buffer_proto = {
     .allowed = __redactor_allowed_prog,
 };
 
-BPF_CALL_4(bpf_copy_from_buffer, struct redactor_ctx *, ctx, unsigned long, offset, void *, ptr, unsigned long, size)
+BPF_CALL_4(bpf_copy_from_buffer, struct redactor_ctx_kern *, ctx, unsigned long, offset, void *, ptr, unsigned long, size)
 {
-    if (offset > rd_info.size)
+    if (offset > ctx->info.size)
         return -EINVAL;
-    size_t sz = rd_info.size - offset;
+    size_t sz = ctx->info.size - offset;
     if (sz > size)
         sz = size;
 
-    return copy_from_user(ptr, rd_info.buf + offset, sz);
+    return copy_from_user(ptr, ctx->info.buf + offset, sz);
 }
 
 const struct bpf_func_proto bpf_copy_from_buffer_proto = {
@@ -173,4 +208,5 @@ const struct bpf_prog_ops bpf_redactor_prog_ops = {
 const struct bpf_verifier_ops bpf_redactor_verifier_ops = {
 	.get_func_proto = redactor_func_proto,
 	.is_valid_access = redactor_is_valid_access,
+    .convert_ctx_access = redactor_convert_ctx_access,
 };

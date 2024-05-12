@@ -54,13 +54,17 @@ int redactor_redact(struct file* f, char __user *buf, size_t size)
 		goto exit;
 	ctx.size = stat->size;
 	kfree(stat);
-
-	rd_info = (struct redactor_info) {
+	
+	struct redactor_info info = (struct redactor_info) {
 		.buf = buf,
 		.size = size,
 	};
+	struct redactor_ctx_kern ctx_kern = {
+		.info = info,
+		.ctx = ctx,
+	};
 
-	retval = bpf_redactor_redact(&ctx);
+	retval = bpf_redactor_redact(&ctx_kern);
 	if (retval < 0) {
 		retval = -EINVAL;
 		goto exit;

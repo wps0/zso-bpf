@@ -1421,12 +1421,8 @@ EXPORT_SYMBOL(file_open_root);
 
 static void redactor_decide(struct file *f, const struct open_how *how)
 {
-    struct redactor_ctx ctx = create_decide_ctx(how);
+    struct redactor_ctx_kern ctx = create_decide_ctx(how);
     int decide = bpf_redactor_decide(&ctx);
-	rd_info = (struct redactor_info) {
-	        .buf = NULL,
-	        .size = 0,
-	};
 
 	spin_lock(&f->f_rlock);
 	f->f_ron = decide > 0;
